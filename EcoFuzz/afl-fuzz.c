@@ -76,6 +76,24 @@
 #  define EXP_ST static
 #endif /* ^AFL_LIB */
 
+#define CALCULATE_OVERHEAD 1
+#ifdef CALCULATE_OVERHEAD
+  typedef unsigned long long timestamp_t;
+  timestamp_t get_timestamp ();
+#endif
+
+#ifdef CALCULATE_OVERHEAD
+  timestamp_t get_timestamp () {
+    struct timeval now;
+    gettimeofday (&now, NULL);
+    return  now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
+  }
+#endif
+
+#ifdef CALCULATE_OVERHEAD
+  double update_overhead_sec;
+#endif
+
 /* Lots of globals, but mostly for the status UI and other things where it
    really makes no sense to haul them around as function parameters. */
 
@@ -8348,11 +8366,38 @@ int main(int argc, char** argv) {
 
   queued_paths_initial = queued_paths;
 
+
+#ifdef CALCULATE_OVERHEAD
+    double T0 = get_timestamp();
+    double overhead = 0.0;
+
+    u8 *scheduler_overhead_csv_file_name = alloc_printf("%s/scheduler_overhead.csv", out_dir);
+    s32 fd = open(scheduler_overhead_csv_file_name, O_WRONLY | O_APPEND | O_CREAT, DEFAULT_PERMISSION);
+    if (unlikely(fd < 0)) { PFATAL("Unable to create %s/scheduler_overhead.csv'", out_dir); }
+    timestamp_t t0, t1;
+    u8 *scheduler_overhead;
+#endif
+
+
   while (1) {
 
     u8 skipped_fuzz;
 
+
+#ifdef CALCULATE_OVERHEAD
+    t0 = get_timestamp();
+#endif
+
+
     cull_queue();
+
+#ifdef CALCULATE_OVERHEAD
+    t1 = get_timestamp();
+    overhead += (t1 - t0) / 1000000.0;
+    OKF("Seed scehduler overhead is: %.4g, %.4g", overhead / ((t1 - T0) / 1000000.0), update_overhead_sec );
+    scheduler_overhead = alloc_printf("%f, %f, %f\n", (double) (t1 - T0) / 1000000.0, (double) overhead, update_overhead_sec );
+    write((int) (fd), scheduler_overhead, strlen(scheduler_overhead));
+#endif
 
     if (!queue_cur) {
 
