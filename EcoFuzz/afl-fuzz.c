@@ -91,6 +91,7 @@
 #endif
 
 #ifdef CALCULATE_OVERHEAD
+  #define DEFAULT_PERMISSION 0600
   double update_overhead_sec;
 #endif
 
