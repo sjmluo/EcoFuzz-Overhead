@@ -8477,6 +8477,12 @@ stop_fuzzing:
            "    (For info on resuming, see %s/README.)\n", doc_path);
 
   }
+  
+  #ifdef CALCULATE_OVERHEAD
+    close(fd);
+    ck_free(scheduler_overhead_csv_file_name);
+    ck_free(scheduler_overhead);
+#endif
 
   fclose(plot_file);
   destroy_queue();
